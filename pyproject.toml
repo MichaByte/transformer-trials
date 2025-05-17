@@ -1,0 +1,61 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "transformer-trials"
+dynamic = ["version"]
+description = ''
+readme = "README.md"
+requires-python = ">=3.12"
+license = "MIT"
+keywords = []
+authors = [
+  { name = "Micha R. Albert", email = "m@2231.tech" },
+]
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "Programming Language :: Python",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Programming Language :: Python :: Implementation :: CPython",
+]
+dependencies = [
+  "fastapi[standard]~=0.115.12",
+  "slack_bolt~=1.23.0",
+  "aiohttp~=3.11.18",
+  "apscheduler~=3.11.0",
+  "click~=8.2.0",
+  "python_dotenv~=1.1.0"
+]
+
+[tool.hatch.version]
+path = "src/transformer_trials/__about__.py"
+
+[tool.hatch.envs.types]
+extra-dependencies = [
+  "mypy>=1.0.0",
+]
+[tool.hatch.envs.types.scripts]
+check = "mypy --install-types --non-interactive {args:src/transformer_trials tests}"
+
+[tool.coverage.run]
+source_pkgs = ["transformer_trials", "tests"]
+branch = true
+parallel = true
+omit = [
+  "src/transformer_trials/__about__.py",
+]
+
+[tool.coverage.paths]
+transformer_trials = ["src/transformer_trials", "*/transformer-trials/src/transformer_trials"]
+tests = ["tests", "*/transformer-trials/tests"]
+
+[tool.coverage.report]
+exclude_lines = [
+  "no cov",
+  "if __name__ == .__main__.:",
+  "if TYPE_CHECKING:",
+]
+
+[project.scripts]
