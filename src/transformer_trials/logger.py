@@ -1,11 +1,14 @@
 import logging
+import sys
+from colorama import Fore, Style, init as colorama_init
 
-from colorama import Fore, Back, Style
-
+colorama_init(autoreset=True)
 
 class CustomFormatter(logging.Formatter):
-
-    format_str = f"%(asctime)s - {Style.BRIGHT}%(levelname)s{Style.NORMAL} from %(name)s: %(message)s {Style.BRIGHT}(%(filename)s:%(lineno)d){Style.NORMAL}"
+    format_str = (
+        f"%(asctime)s - {Style.BRIGHT}%(levelname)s{Style.NORMAL} from "
+        f"%(name)s: %(message)s {Style.BRIGHT}(%(filename)s:%(lineno)d){Style.NORMAL}"
+    )
 
     FORMATS = {
         logging.DEBUG: Fore.BLUE + format_str + Style.RESET_ALL,
@@ -16,35 +19,52 @@ class CustomFormatter(logging.Formatter):
     }
 
     def format(self, record: logging.LogRecord):
-        # print(record)
-        log_fmt = self.FORMATS.get(record.levelno)
+        log_fmt = self.FORMATS.get(record.levelno, self.format_str)
         formatter = logging.Formatter(log_fmt)
         return formatter.format(record)
 
-
-class LogHijack(logging.Filter):
-    def filter(self, record: logging.LogRecord):
-        print(record)
-        logging.getLogger(__name__).handle(record)
-        return False
+class CustomLogger(logging.Logger):
 
 
-def get_logger(level: int = logging.DEBUG):
-    for log in (
-        logging.getLogger("uvicorn"),
-        logging.getLogger("uvicorn.error"),
-        logging.getLogger("uvicorn.access"),
-        logging.getLogger("uvicorn.asgi"),
-    ):
-        log.addFilter(LogHijack())
-    logger = logging.getLogger(__name__)
-    logger.setLevel(level)
+    def __init__(self, name: str, level: int = logging.DEBUG):
+        super().__init__(name, level)
 
-    # create console handler with a higher log level
-    console_handler = logging.StreamHandler()
-    console_handler.setLevel(level)
-    console_handler.setFormatter(CustomFormatter())
+        self.setLevel(level)
+        console_handler = logging.StreamHandler(sys.stdout)
+        console_handler.setLevel(level)
+        console_handler.setFormatter(CustomFormatter())
 
-    logger.addHandler(console_handler)
+        self.addHandler(console_handler)
 
-    return logger
+LOGGING_CONFIG = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "formatters": {
+        "default": {
+            "()": CustomFormatter,
+        },
+        "access": {
+            "()": CustomFormatter,
+        },
+    },
+    "handlers": {
+        "default": {
+            "formatter": "default",
+            "class": "logging.StreamHandler",
+            "stream": "ext://sys.stderr",
+            'level': 'DEBUG',
+
+        },
+        "access": {
+            "formatter": "access",
+            "class": "logging.StreamHandler",
+            "stream": "ext://sys.stdout",
+            'level': 'DEBUG',
+        },
+    },
+    "loggers": {
+        "uvicorn": {"handlers": ["default"], "level": "DEBUG", "propagate": False},
+        "uvicorn.error": {"level": "INFO"},
+        "uvicorn.access": {"handlers": ["access"], "level": "DEBUG", "propagate": False},
+    },
+}
